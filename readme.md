@@ -1,5 +1,5 @@
 # Multimedia Interfaces Project
-This repository contains my MMI project.
+This repository contains my MMI project for WS24.
 It is set-up in such a way that it is fairly easy to use, extend and build upon.
 
 ## Setup
