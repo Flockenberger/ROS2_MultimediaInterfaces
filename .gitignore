@@ -1,0 +1,26 @@
+# Directories
+.vs/
+Binaries/
+build/
+install/
+log/
+ros2_ws/build/
+ros2_ws/install/
+ros2_ws/log/
+out/
+# Files
+*.vcxproj
+*.vcxproj.user
+*.vcxproj.filters
+*.sln
+*.log
+# QuestLog Plugin files (dlls)
+*.qle
+
+# Msc files 
+*.csv
+*.bin
+Makefile
+
+# Exclude
+!Vendor/Binaries
