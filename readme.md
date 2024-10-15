@@ -8,6 +8,8 @@ For this setup to work follow the [ROS2 Windows Installation Guide](https://docs
 Note: For this project I skipped QT as I don't need any fancy GUI etc.
 
 This project assumes that you installed ROS2 (jazzy) in `C:\dev\ros2_jazzy` as per installation instructions!
+Additionally it assumes that Visual Studio 2022 is installed, if you use a different version you have to change the paths in the .bat files which 
+are described below!
 
 ## Code & Build
 In `ros2_ws/` you will find 3 .bat files which I created for ease of use:
