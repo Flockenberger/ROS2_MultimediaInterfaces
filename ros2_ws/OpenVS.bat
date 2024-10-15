@@ -1,4 +1,3 @@
-REM Written by Florian Wagner 
 REM Opens Visual Studio the src folder set as location
 REM It sets up the local environment in the VS environment so cmake works!
 
