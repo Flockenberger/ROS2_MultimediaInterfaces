@@ -7,4 +7,5 @@ call "C:\Program Files\Microsoft Visual Studio\2022\Community\VC\Auxiliary\Build
 call C:\dev\ros2_jazzy\local_setup.bat
 colcon build --merge-install
 call install\setup.bat
+ros2 run mmi_keyboard_package mmi_project
 cmd /k

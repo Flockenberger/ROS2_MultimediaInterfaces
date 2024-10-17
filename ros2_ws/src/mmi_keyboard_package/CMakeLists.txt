@@ -17,17 +17,27 @@ find_package(std_msgs REQUIRED)
 
 
 add_executable(
-publisher_node_1
-"src/TestNode.cpp" 
-)
+mmi_project
+# cpp source Files
+ "src/Main.cpp"
+ "src/PublisherNode.cpp" 
+ "src/SerialNode.cpp" 
+ "src/SerialInterface.cpp"
+
+# h include Files
+ "include/PublisherNode.h"
+ "include/SerialNode.h" 
+ "include/MMIPredefine.h"
+ "include/SerialInterface.h" 
+ )
 
 # Add the include directory
 # All files in the include/my_project/ directory will be included
-target_include_directories(publisher_node_1 PRIVATE
+target_include_directories(mmi_project PRIVATE
     ${CMAKE_SOURCE_DIR}/include
 )
 
-target_include_directories(publisher_node_1 PRIVATE
+target_include_directories(mmi_project PRIVATE
     ${CMAKE_SOURCE_DIR}/vendor/include
 )
 
@@ -39,13 +49,13 @@ else()
 endif()
 
 # Link the executable with the appropriate serial.lib file
-target_link_libraries(publisher_node_1 ${SERIAL_LIB})
+target_link_libraries(mmi_project ${SERIAL_LIB})
 
 
-ament_target_dependencies(publisher_node_1 rclcpp std_msgs)
+ament_target_dependencies(mmi_project rclcpp std_msgs)
 
 install(TARGETS
-  publisher_node_1
+  mmi_project
   DESTINATION lib/${PROJECT_NAME}
 )
 
