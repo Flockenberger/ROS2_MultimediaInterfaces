@@ -4,6 +4,7 @@
 #include <windows.h>
 #endif
 
+const std::string mmi::SerialNode::SerialTopic = "mmi_serial_topic";
 
 mmi::SerialNode::SerialNode(const mmi::SerialConnection& connection)
 	: Node("mmi_serial_node"), m_Connection(connection)
@@ -16,8 +17,13 @@ mmi::SerialNode::SerialNode(const mmi::SerialConnection& connection)
 
 	// Subscriber to the topic
 	m_Subscriber =
-		this->create_subscription<std_msgs::msg::String>(mmi::SerialProtocol::SerialTopic, 10, std::bind(&SerialNode::SendToSerialCallback, this, std::placeholders::_1));
+		this->create_subscription<std_msgs::msg::String>(mmi::SerialNode::SerialTopic, 10, std::bind(&SerialNode::SendToSerialCallback, this, std::placeholders::_1));
+	// Create a publisher for serial data
+	m_Publisher = this->create_publisher<std_msgs::msg::String>("serial_data_topic", 10);
 
+	// Create a timer to periodically check for data from the serial port
+	m_Timer = this->create_wall_timer(
+		std::chrono::milliseconds(100), std::bind(&SerialNode::ReceiveSerialCallback, this));
 }
 
 void mmi::SerialNode::CreateInitialPortList()
@@ -33,8 +39,6 @@ void mmi::SerialNode::CreateInitialPortList()
 			HANDLE hSerial = CreateFile(port_name.c_str(), GENERIC_READ | GENERIC_WRITE, 0, 0, OPEN_EXISTING, 0, 0);
 			if (hSerial != INVALID_HANDLE_VALUE)
 			{
-				RCLCPP_INFO(this->get_logger(), "Found port: %s", port_name);
-
 				m_PortList.push_back(port_name);
 				CloseHandle(hSerial);
 			}
@@ -83,10 +87,11 @@ mmi::Bool mmi::SerialNode::OpenPort(const std::string& port)
 
 mmi::Bool mmi::SerialNode::ProtocolInitializeConnection()
 {
-	RCLCPP_INFO(this->get_logger(), "Trying to establish initial connection...");
-	mmi::UInt64 data = m_SerialPort.write(mmi::SerialProtocol::Initialize);
+	mmi::UInt64 data = m_SerialPort.write(mmi::SerialProtocol::Initialize + mmi::SerialProtocol::MessageEnd);
 	std::string response = m_SerialPort.readline();
-	
+
+	//	RCLCPP_INFO(this->get_logger(), "Protocol Response: %s", response);
+
 	if (!response.empty())
 	{
 		if (response == mmi::SerialProtocol::Ok)
@@ -116,10 +121,10 @@ void mmi::SerialNode::OpenOrDetectArduinoPort()
 						break;
 					}
 
-					else
-					{
-						RCLCPP_INFO(this->get_logger(), "Port %s is not an mmi Arduino: ", port);
-					}
+					//					else
+					//					{
+					//						RCLCPP_INFO(this->get_logger(), "Port %s is not an mmi Arduino: ", port);
+					//					}
 				}
 			}
 		}
@@ -148,19 +153,60 @@ void mmi::SerialNode::OpenOrDetectArduinoPort()
 	}
 }
 
+std::string& mmi::SerialNode::FormatProtocolMessage(std::string& msg)
+{
+	if (msg.empty() || msg.back() != mmi::SerialProtocol::MessageEnd)
+	{
+		msg += mmi::SerialProtocol::MessageEnd;
+	}
+	return msg;
+}
+
 void mmi::SerialNode::SendToSerialCallback(const std_msgs::msg::String::SharedPtr msg)
 {
 
 	std::string data = msg->data;
-	RCLCPP_INFO(this->get_logger(), "Sending to serial: %s", data.c_str());
+
+	//ensure we add a \n to our message as that is required by protocol
+	//FormatProtocolMessage(data);
+
+	RCLCPP_INFO(this->get_logger(), "Sending to serial: %s", msg->data);
 
 	if (m_SerialPort.isOpen())
 	{
-		m_SerialPort.write(data);
+
+//TODO: Change to something better and more meaningful 
+		if (data == "0")
+		{
+			data = mmi::SerialProtocol::DisableLedBuiltin;
+			m_SerialPort.write(FormatProtocolMessage(data));
+		}
+		else if(data == "1")
+		{
+			data = mmi::SerialProtocol::EnableLedBuiltin;
+			m_SerialPort.write(FormatProtocolMessage(data));
+		}
 	}
 	else
 	{
 		RCLCPP_ERROR(this->get_logger(), "Serial port is not open. Cannot send data.");
 	}
 
+}
+
+void mmi::SerialNode::ReceiveSerialCallback()
+{
+	if (m_SerialPort.available())
+	{
+		// Read all available data from the serial port
+		std::string result = m_SerialPort.readline();
+
+		// Log and publish the received data
+		RCLCPP_INFO(this->get_logger(), "Received: %s", result.c_str());
+
+		// Create and publish the message
+//		auto message = std_msgs::msg::String();
+//		message.data = result;
+//		m_Publisher->publish(message);
+	}
 }

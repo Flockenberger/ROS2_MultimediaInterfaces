@@ -1,54 +1,44 @@
+#include "MMIProtocol.h"
 
-bool initialized = false;
-String input = "";
+//The MMI Protocol instance
+mmi::MMIProtocol Protocol;
 
-void setup() 
-{
-    pinMode(LED_BUILTIN, OUTPUT);
-    Serial.begin(115200);
-    digitalWrite(LED_BUILTIN, LOW);
+//The message with which we communicate
+String message = "";
+
+void setup() {
+
+  //Begin our protocol
+  //This will open up a serial connection at the given baud rate
+  Protocol.Begin(mmi::SerialBaud::BAUD_115200);
 }
 
-void loop() 
-{
+void loop() {
 
-  if(Serial.available() > 0)
-  {
-   if(initialized)
-   {
-     int value = Serial.read();
-     if(value == '1')
-     {
-       digitalWrite(LED_BUILTIN, HIGH);
-     }
-     else
-     {
-       digitalWrite(LED_BUILTIN, LOW);
-     }
-     Serial.print("Received: " + value);
-   }
-  else
-  {
-    digitalWrite(LED_BUILTIN, LOW);
-    char messageChar = (char)Serial.read();
-    bool complete = false;
-    input += messageChar;
+  //check if we established a valid connection through protocol
+  if (Protocol.ConnectionEstablished()) {
 
-      if(messageChar == '\n')
-      {
-        complete = true;
+    //We wait until we have a message
+    if (Protocol.BeginMessage(message)) {
+
+      //now we can do anything with our message
+      if (Protocol.IsProtocol(message, mmi::SerialProtocol::EnableLedBuiltin)) {
+        digitalWrite(LED_BUILTIN, HIGH);
+        Protocol.Write(mmi::SerialProtocol::Ok);
+
+      } else if (Protocol.IsProtocol(message, mmi::SerialProtocol::DisableLedBuiltin)) {
+        digitalWrite(LED_BUILTIN, LOW);
+        Protocol.Write(mmi::SerialProtocol::Ok);
       }
 
-      if(complete)
-      {
-        if (input.indexOf("mmi") >= 0) 
-        {
-          Serial.print("Ok");
-          digitalWrite(LED_BUILTIN, HIGH);
-          initialized = true;
-        }
-        input = "";
-      }
+      //once we used this message end it
+      //syntax is similar to how ImGui
+      Protocol.EndMessage(message);
     }
+
+  }
+  //If we don't have an established connection -> wait until we do
+  else {
+    Protocol.EstablishConnection();
   }
 }
