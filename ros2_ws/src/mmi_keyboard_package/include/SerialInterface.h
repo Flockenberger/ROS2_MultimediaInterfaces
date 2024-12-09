@@ -108,95 +108,137 @@ MMI_STATIC MMI_CONST  mmi::String Value = "mmi_p://event/value";
 #if defined(MMI_PLATFORM_WINDOWS)
 MMI_STATIC std::vector<mmi::Float32> ParseValueProtocol(const std::string& protocolString)
 {
-    std::vector<mmi::Float32> values;
-    std::string baseProto = Value + "/";
-    // Check if the protocol string starts with the base protocol
-    if (protocolString.find(baseProto) != 0)
-    {
-        return values;
-    }
+	std::vector<mmi::Float32> values;
+	std::string baseProto = Value + "/";
+	// Check if the protocol string starts with the base protocol
+	if (protocolString.find(baseProto) != 0)
+	{
+		return values;
+	}
 
-    std::string remaining = protocolString.substr(baseProto.size());
-    std::replace(remaining.begin(), remaining.end(), ',', '.');
+	std::string remaining = protocolString.substr(baseProto.size());
+	std::replace(remaining.begin(), remaining.end(), ',', '.');
 
-    std::vector<std::string> parts;
-    std::istringstream stream(remaining);
-    std::string part;
+	std::vector<std::string> parts;
+	std::istringstream stream(remaining);
+	std::string part;
 
-    while (std::getline(stream, part, '/')) 
-    {
-        parts.push_back(part);
-    }
+	while (std::getline(stream, part, '/'))
+	{
+		parts.push_back(part);
+	}
 
-    if (parts.size() < 1) 
-    {
-        return values;
-    }
+	if (parts.size() < 1)
+	{
+		return values;
+	}
 
-    int numValues = std::stoi(parts[0]);
+	int numValues = std::stoi(parts[0]);
 
-    if (parts.size() - 1 != static_cast<size_t>(numValues)) 
-    {
-        return values;
-    }
+	if (parts.size() - 1 != static_cast<size_t>(numValues))
+	{
+		return values;
+	}
 
-    
-    for (size_t i = 1; i < parts.size(); ++i) 
-    {
-        values.push_back(std::stof(parts[i]));
-    }
 
-    return values;
+	for (size_t i = 1; i < parts.size(); ++i)
+	{
+		values.push_back(std::stof(parts[i]));
+	}
+
+	return values;
 }
 #elif defined(MMI_PLATFORM_ARDUINO)
-int ParseValueProtocol(const char* protocolString, float* values, int maxValues) {
-    const char* baseProto = "mmi_p://event/value/";
+MMI_STATIC mmi::Int32 ParseValueProtocol(MMI_CONST mmi::Char* protocolString, mmi::Float32* values, mmi::Int32 maxValues)
+{
+	MMI_CONST mmi::Char* baseProto = mmi::String(Value + "/").c_str();
 
-    // Check if the protocol string starts with the base protocol
-    if (strncmp(protocolString, baseProto, strlen(baseProto)) != 0) {
-        return -1; // Invalid protocol format
-    }
+	if (strncmp(protocolString, baseProto, strlen(baseProto)) != 0)
+	{
+		return -1;
+	}
 
-    // Move pointer past the base protocol
-    const char* remaining = protocolString + strlen(baseProto);
+	MMI_CONST mmi::Char* remaining = protocolString + strlen(baseProto);
+	mmi::Char* endPtr = (mmi::Char*)remaining;
+	mmi::Int32 numValues = atoi(endPtr);
 
-    // Parse the number of values
-    char* endPtr;
-    int numValues = strtol(remaining, &endPtr, 10);
+	// Move past the number
+	while (*endPtr >= '0' && *endPtr <= '9') {
+		endPtr++;
+	}
 
-    // Check if the number of values is valid
-    if (numValues <= 0 || numValues > maxValues) {
-        return -2; // Invalid number of values
-    }
+	// Ensure there's a slash after the number
+	if (*endPtr != '/') {
+		return -3; // Missing separator
+	}
+	endPtr++; // Skip the slash
 
-    // Ensure there's a slash after the number
-    if (*endPtr != '/') {
-        return -3; // Missing separator
-    }
-    endPtr++; // Skip the slash
+	// Parse each value
+	for (mmi::Int32 i = 0; i < numValues; ++i)
+	{
+		// Replace ',' with '.' for decimal parsing
+		mmi::Char valueStr[16]; // Buffer for single value
+		mmi::Int32 valueIndex = 0;
 
-    // Parse each value
-    for (int i = 0; i < numValues; ++i) {
-        // Replace ',' with '.' for decimal parsing
-        for (char* ptr = (char*)endPtr; *ptr != '\0' && *ptr != '/'; ++ptr) {
-            if (*ptr == ',') {
-                *ptr = '.';
-            }
-        }
+		while (*endPtr != '/' && *endPtr != '\0')
+		{
+			// Replace ',' with '.'
+			if (*endPtr == ',')
+			{
+				valueStr[valueIndex++] = '.';
+			}
+			else
+			{
+				valueStr[valueIndex++] = *endPtr;
+			}
+			endPtr++;
+		}
 
-        // Parse the float value
-        values[i] = strtof(endPtr, &endPtr);
+		valueStr[valueIndex] = '\0'; // Null-terminate the string
 
-        // Ensure there's a slash after each value except the last
-        if (i < numValues - 1 && *endPtr != '/') {
-            return -4; // Missing separator for a value
-        }
-        endPtr++; // Skip the slash
-    }
+		// Convert to float using atof
+		values[i] = atof(valueStr);
 
-    return numValues; // Return the number of parsed values
+		// Ensure there's a slash after each value except the last
+		if (i < numValues - 1 && *endPtr != '/')
+		{
+			return -4; // Missing separator for a value
+		}
+		endPtr++; // Skip the slash
+	}
+
+	return numValues; // Return the number of parsed values
 }
 #endif
+
+MMI_STATIC mmi::String CreateValueMessage()
+{
+	return Value + "/0";
+}
+
+template<typename T>
+MMI_STATIC mmi::String CreateValueMessage(const T& first)
+{
+	return Value + "/1/" + mmi::String(first);
+}
+
+template<typename T, typename... Args>
+MMI_STATIC mmi::String CreateValueMessage(const T& first, const Args&... rest)
+{
+	return Value + "/" + mmi::String(sizeof...(rest) + 1) + "/" + mmi::String(first) + CreateValueMessageHelper(rest...);
+}
+
+template<typename T>
+MMI_STATIC mmi::String CreateValueMessageHelper(const T& value)
+{
+	return "/" + mmi::String(value);
+}
+
+template<typename T, typename... Args>
+MMI_STATIC mmi::String CreateValueMessageHelper(const T& first, const Args&... rest)
+{
+	return "/" + mmi::String(first) + CreateValueMessageHelper(rest...);
+}
 
 MMI_NAMESPACE_END(SerialProtocol)
 MMI_NAMESPACE_END(mmi)

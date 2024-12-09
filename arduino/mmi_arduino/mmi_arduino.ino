@@ -24,7 +24,7 @@ mmi::Bool PublishJoystick(mmi::MMIProtocol& protocol)
   mmi::Int32 x = analogRead(A0);
   mmi::Int32 y = analogRead(A1);
   mmi::Int32 z = analogRead(A2);
-  protocol.Write(mmi::SerialProtocol::Value + "/" + mmi::String(3) + "/" +  mmi::String(x) + "/" + mmi::String(y) + "/" + mmi::String(z));
+  protocol.Write(mmi::SerialProtocol::CreateValueMessage(x, y, z));
   //Disable publisher on Joystick SW 
   if(z <= 100)
   {
@@ -52,6 +52,7 @@ mmi::Bool HandleDisableJoystick(MMI_CONST mmi::String& message, mmi::MMIProtocol
 ///=============================================
 /// HC-SR04
 ///=============================================
+
 //With help from:
 //https://projecthub.arduino.cc/Isaac100/getting-started-with-the-hc-sr04-ultrasonic-sensor-7cabe1
 MMI_CONST mmi::UInt32 trigPin = 9;
@@ -70,7 +71,7 @@ mmi::Bool PublishHCSR04(mmi::MMIProtocol& protocol)
 
   duration = pulseIn(echoPin, HIGH);
   distance = (duration*.0343)/2;
-  protocol.Write(mmi::SerialProtocol::Value + "/" + mmi::String(2) + "/" +  mmi::String(distance) + "/" + mmi::String(duration));
+  protocol.Write(mmi::SerialProtocol::CreateValueMessage(distance, duration));
   return true;
 }
 

@@ -149,21 +149,18 @@ MMI_STATIC std::vector<mmi::Float32> ParseValueProtocol(const std::string& proto
     return values;
 }
 #elif defined(MMI_PLATFORM_ARDUINO)
-MMI_STATIC int ParseValueProtocol(const char* protocolString, float* values, int maxValues) 
+MMI_STATIC mmi::Int32 ParseValueProtocol(MMI_CONST mmi::Char* protocolString, mmi::Float32* values, mmi::Int32 maxValues) 
 {
-    const char* baseProto = "mmi_p://event/value/";
+    MMI_CONST mmi::Char* baseProto = mmi::String(Value + "/").c_str();
 
-    // Check if the protocol string starts with the base protocol
-    if (strncmp(protocolString, baseProto, strlen(baseProto)) != 0) {
-        return -1; // Invalid protocol format
+    if (strncmp(protocolString, baseProto, strlen(baseProto)) != 0)
+     {
+        return -1; 
     }
 
-    // Move pointer past the base protocol
-    const char* remaining = protocolString + strlen(baseProto);
-
-    // Parse the number of values
-    char* endPtr = (char*)remaining; // Temporary pointer for parsing
-    int numValues = atoi(endPtr);
+    MMI_CONST mmi::Char* remaining = protocolString + strlen(baseProto);
+    mmi::Char* endPtr = (mmi::Char*)remaining;
+    mmi::Int32 numValues = atoi(endPtr);
 
     // Move past the number
     while (*endPtr >= '0' && *endPtr <= '9') {
@@ -177,16 +174,20 @@ MMI_STATIC int ParseValueProtocol(const char* protocolString, float* values, int
     endPtr++; // Skip the slash
 
     // Parse each value
-    for (int i = 0; i < numValues; ++i) {
+    for (mmi::Int32 i = 0; i < numValues; ++i) 
+    {
         // Replace ',' with '.' for decimal parsing
-        char valueStr[16]; // Buffer for single value
-        int valueIndex = 0;
+        mmi::Char valueStr[16]; // Buffer for single value
+        mmi::Int32 valueIndex = 0;
 
-        while (*endPtr != '/' && *endPtr != '\0') {
+        while (*endPtr != '/' && *endPtr != '\0') 
+        {
             // Replace ',' with '.'
-            if (*endPtr == ',') {
+            if (*endPtr == ',') 
+            {
                 valueStr[valueIndex++] = '.';
-            } else {
+            } else 
+            {
                 valueStr[valueIndex++] = *endPtr;
             }
             endPtr++;
@@ -198,7 +199,8 @@ MMI_STATIC int ParseValueProtocol(const char* protocolString, float* values, int
         values[i] = atof(valueStr);
 
         // Ensure there's a slash after each value except the last
-        if (i < numValues - 1 && *endPtr != '/') {
+        if (i < numValues - 1 && *endPtr != '/') 
+        {
             return -4; // Missing separator for a value
         }
         endPtr++; // Skip the slash
@@ -207,6 +209,35 @@ MMI_STATIC int ParseValueProtocol(const char* protocolString, float* values, int
     return numValues; // Return the number of parsed values
 }
 #endif
+
+MMI_STATIC mmi::String CreateValueMessage() 
+{
+  return Value + "/0";
+}
+
+template<typename T>
+MMI_STATIC mmi::String CreateValueMessage(const T& first) 
+{
+  return Value + "/1/" + mmi::String(first);
+}
+
+template<typename T, typename... Args>
+MMI_STATIC mmi::String CreateValueMessage(const T& first, const Args&... rest) 
+{
+  return Value + "/" + mmi::String(sizeof...(rest) + 1) + "/" + mmi::String(first) + CreateValueMessageHelper(rest...);
+}
+
+template<typename T>
+MMI_STATIC mmi::String CreateValueMessageHelper(const T& value)
+{
+  return "/" + mmi::String(value);
+}
+
+template<typename T, typename... Args>
+MMI_STATIC mmi::String CreateValueMessageHelper(const T& first, const Args&... rest)
+{
+  return "/" + mmi::String(first) + CreateValueMessageHelper(rest...);
+}
 
 MMI_NAMESPACE_END(SerialProtocol)
 MMI_NAMESPACE_END(mmi)
