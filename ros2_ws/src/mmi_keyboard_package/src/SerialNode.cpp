@@ -211,7 +211,7 @@ void mmi::SerialNode::SendToSerialCallback(const std_msgs::msg::String::SharedPt
 		//Disable HC-SR04
 		else if (data == "5")
 		{
-			data = mmi::SerialProtocol::DisableSR04; RCLCPP_INFO(this->get_logger(), "Sending to serial: %s", mmi::SerialProtocol::DisableSR04);
+			data = mmi::SerialProtocol::DisableSR04; RCLCPP_INFO_STREAM_ONCE(this->get_logger(), "Sending to serial: " << mmi::SerialProtocol::DisableSR04);
 			m_SerialPort.write(FormatProtocolMessage(data));
 		}
 		
