@@ -6,8 +6,24 @@
 /// Author: Florian Wagner
 /// 
 
+#define MMI_NAMESPACE_BEGIN(ns) namespace ns {
+#define MMI_NAMESPACE_END(ns) };
+
 #if _WIN32 || _WIN64
+
 #define MMI_PLATFORM_WINDOWS
+#include <string>
+#include <memory>
+#include <ostream>
+#include <iostream>
+#include <iomanip>
+#include <cstdint>
+#include <vector>
+#include <sstream>
+#include <algorithm>
+MMI_NAMESPACE_BEGIN(mmi)
+using String = std::string;
+MMI_NAMESPACE_END(mmi)
 #if _WIN64
 #define MMI_ENV_64
 #else
@@ -31,27 +47,25 @@
 #define MMI_PLATFORM_ANDROID
 #elif defined(__linux__)
 #define MMI_PLATFORM_LINUX
+#elif defined(__AVR_ATmega328P__) || defined(__AVR_ATmega2560__) || defined(__AVR__) || defined(ARDUINO)
+#define MMI_PLATFORM_ARDUINO
+#include "WString.h" //Arduino wiring string
+MMI_NAMESPACE_BEGIN(mmi)
+using String = ::String;
+MMI_NAMESPACE_END(mmi)
 #else
 /* Unknown compiler/platform */
 #error "Unknown platform!"
 #endif
 
-#include <memory>
-#include <string>
-#include <ostream>
-#include <iostream>
-#include <iomanip>
-#include <cstdint>
-
 //other pre-defines
-#define MMI_NAMESPACE_BEGIN(ns) namespace ns {
-#define MMI_NAMESPACE_END(ns) };
-
 #define MMI_EXPAND_MACRO(x) x
 #define MMI_STRINGIFY_MACRO(x) #x
 
 #define MMI_BIT(x) (1 << x)
 
+#define MMI_STATIC static
+#define MMI_CONST const
 
 #define SIZE(...) sizeof(__VA_ARGS__)
 
@@ -70,7 +84,6 @@
 
 #define SIZE_INT			sizeof(mmi::Int)
 #define SIZE_UINT			sizeof(mmi::UInt)
-
 
 MMI_NAMESPACE_BEGIN(mmi)
 
@@ -113,7 +126,6 @@ typedef Float32			   Float;	/**< Represents a 32-bit floating point value.*/
 
 typedef double			   Float64;	/**< Represents a 64-bit floating point value.*/
 typedef Float64			   Double;	/**< Represents a 64-bit floating point value.*/
-
 template<typename T>
 using Scope = std::unique_ptr<T>;	/**< A scope is an alias for a unique_ptr of type <T>*/
 
@@ -158,5 +170,7 @@ constexpr Ref<T> ToRef(T* ptr)
 {
 	return std::shared_ptr<T>(ptr);
 }
+
+
 
 MMI_NAMESPACE_END(mmi)

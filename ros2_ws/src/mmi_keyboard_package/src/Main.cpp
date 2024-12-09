@@ -1,12 +1,14 @@
-
 #include "PublisherNode.h"
 #include "SerialNode.h"
+#include "ComputeNode.h"
 
 int main(int argc, char* argv[])
 {
     //Initialize rclcpp otherwise we will fail when we create our Nodes
     rclcpp::init(argc, argv);
     
+    //Note the order of creating the nodes is somewhat important
+    mmi::Ref<mmi::ComputeNode> computeNode = mmi::CreateRef<mmi::ComputeNode>();
     mmi::Ref<mmi::PublisherNode> publisherNode = mmi::CreateRef<mmi::PublisherNode>();
 
     mmi::SerialConnection serial = {};
@@ -19,13 +21,11 @@ int main(int argc, char* argv[])
     //to be able to use more than one node within our package
     rclcpp::executors::MultiThreadedExecutor executor;
     
-
     executor.add_node(publisherNode);
     executor.add_node(serialNode);
-    
-    
+    executor.add_node(computeNode);
 
-    executor.spin();
+    executor.spin(); //they spin me right round baby right round...
 
 	rclcpp::shutdown();
 

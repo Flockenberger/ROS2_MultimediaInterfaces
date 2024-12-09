@@ -19,7 +19,7 @@ mmi::SerialNode::SerialNode(const mmi::SerialConnection& connection)
 	m_Subscriber =
 		this->create_subscription<std_msgs::msg::String>(mmi::SerialNode::SerialTopic, 10, std::bind(&SerialNode::SendToSerialCallback, this, std::placeholders::_1));
 	// Create a publisher for serial data
-	m_Publisher = this->create_publisher<std_msgs::msg::String>("serial_data_topic", 10);
+	m_Publisher = this->create_publisher<std_msgs::msg::String>("mmi_serial_compute_topic", 10);
 
 	// Create a timer to periodically check for data from the serial port
 	m_Timer = this->create_wall_timer(
@@ -44,6 +44,7 @@ void mmi::SerialNode::CreateInitialPortList()
 			}
 		}
 #else
+		//Note: Not tested as I don't have a linux system at hand!
 		// For Linux, use "/dev/ttyACMx" or "/dev/ttyUSBx"
 		for (int i = 0; i < 10; i++)
 		{
@@ -94,7 +95,7 @@ mmi::Bool mmi::SerialNode::ProtocolInitializeConnection()
 
 	if (!response.empty())
 	{
-		if (response == mmi::SerialProtocol::Ok)
+		if (response == (mmi::SerialProtocol::Ok + mmi::SerialProtocol::MessageEnd))
 		{
 			return true;
 		}
@@ -169,23 +170,51 @@ void mmi::SerialNode::SendToSerialCallback(const std_msgs::msg::String::SharedPt
 
 	//ensure we add a \n to our message as that is required by protocol
 	//FormatProtocolMessage(data);
-
-	RCLCPP_INFO(this->get_logger(), "Sending to serial: %s", msg->data);
-
+	
 	if (m_SerialPort.isOpen())
 	{
 
-//TODO: Change to something better and more meaningful 
+		//TODO: Change to something better and more useful
+		//Maybe do something similar as we did on the arduino and
+		//create a proper registry system etc.
 		if (data == "0")
 		{
-			data = mmi::SerialProtocol::DisableLedBuiltin;
+			data = mmi::SerialProtocol::DisableLedBuiltin; RCLCPP_INFO_STREAM_ONCE(this->get_logger(), "Sending to serial:" << mmi::SerialProtocol::DisableLedBuiltin);
 			m_SerialPort.write(FormatProtocolMessage(data));
 		}
-		else if(data == "1")
+		else if (data == "1")
 		{
-			data = mmi::SerialProtocol::EnableLedBuiltin;
+			data = mmi::SerialProtocol::EnableLedBuiltin; RCLCPP_INFO_STREAM_ONCE(this->get_logger(), "Sending to serial:" << mmi::SerialProtocol::EnableLedBuiltin);
 			m_SerialPort.write(FormatProtocolMessage(data));
 		}
+
+		//Enable Joystick
+		else if (data == "2")
+		{
+			data = mmi::SerialProtocol::EnableJoystick; RCLCPP_INFO_STREAM_ONCE(this->get_logger(), "Sending to serial:" << mmi::SerialProtocol::EnableJoystick);
+			m_SerialPort.write(FormatProtocolMessage(data));
+		}
+		//Dsiable Joystick
+		else if (data == "3")
+		{
+			data = mmi::SerialProtocol::DisableJoystick; RCLCPP_INFO_STREAM_ONCE(this->get_logger(), "Sending to serial:" << mmi::SerialProtocol::DisableJoystick);
+			m_SerialPort.write(FormatProtocolMessage(data));
+		}
+
+		//Enable HC-SR04
+		else if (data == "4")
+		{
+			data = mmi::SerialProtocol::EnableSR04; RCLCPP_INFO_STREAM_ONCE(this->get_logger(), "Sending to serial:" << mmi::SerialProtocol::EnableSR04);
+			m_SerialPort.write(FormatProtocolMessage(data));
+		}
+
+		//Disable HC-SR04
+		else if (data == "5")
+		{
+			data = mmi::SerialProtocol::DisableSR04; RCLCPP_INFO(this->get_logger(), "Sending to serial: %s", mmi::SerialProtocol::DisableSR04);
+			m_SerialPort.write(FormatProtocolMessage(data));
+		}
+		
 	}
 	else
 	{
@@ -200,13 +229,17 @@ void mmi::SerialNode::ReceiveSerialCallback()
 	{
 		// Read all available data from the serial port
 		std::string result = m_SerialPort.readline();
+		std::string prettyResult = result.substr(0, result.length() - 1);
 
-		// Log and publish the received data
-		RCLCPP_INFO(this->get_logger(), "Received: %s", result.c_str());
+		RCLCPP_INFO(this->get_logger(), "Received: %s from Arduino!", prettyResult.c_str());
 
-		// Create and publish the message
-//		auto message = std_msgs::msg::String();
-//		message.data = result;
-//		m_Publisher->publish(message);
+		if (result.find(mmi::SerialProtocol::Value) != std::string::npos)
+		{
+			RCLCPP_INFO(this->get_logger(), "Forwarding Protocol!");
+			
+			auto message = std_msgs::msg::String();
+			message.data = result;
+			m_Publisher->publish(message);
+		}
 	}
 }

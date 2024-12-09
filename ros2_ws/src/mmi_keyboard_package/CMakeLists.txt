@@ -22,14 +22,14 @@ mmi_project
  "src/Main.cpp"
  "src/PublisherNode.cpp" 
  "src/SerialNode.cpp" 
- "src/SerialInterface.cpp"
+ 
 
 # h include Files
  "include/PublisherNode.h"
  "include/SerialNode.h" 
  "include/MMIPredefine.h"
  "include/SerialInterface.h" 
- )
+   "include/ComputeNode.h" "src/ComputeNode.cpp")
 
 # Add the include directory
 # All files in the include/my_project/ directory will be included

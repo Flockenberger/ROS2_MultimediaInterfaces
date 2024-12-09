@@ -40,6 +40,21 @@ struct SerialConnection
 /// </summary>
 class SerialNode : public rclcpp::Node
 {
+
+private:
+	/// <summary>
+	/// The serial port for our current connection
+	/// </summary>
+	serial::Serial m_SerialPort;
+	mmi::SerialConnection m_Connection;
+	std::vector<std::string> m_PortList;
+
+	//rclcpp 
+
+	rclcpp::Subscription<std_msgs::msg::String>::SharedPtr m_Subscriber;
+	rclcpp::Publisher<std_msgs::msg::String>::SharedPtr m_Publisher;
+	rclcpp::TimerBase::SharedPtr m_Timer;
+
 private:
 
 	///Callback functions
@@ -87,20 +102,6 @@ private:
 	/// <param name="msg">The message to format</param>
 	/// <returns>The same formatted message (reference!)</returns>
 	inline std::string& FormatProtocolMessage(std::string& msg);
-
-	/// <summary>
-	/// The serial port for our current connection
-	/// </summary>
-	serial::Serial m_SerialPort;
-	mmi::SerialConnection m_Connection;
-	std::vector<std::string> m_PortList;
-
-	//rclcpp 
-
-	rclcpp::Subscription<std_msgs::msg::String>::SharedPtr m_Subscriber;
-	rclcpp::Publisher<std_msgs::msg::String>::SharedPtr m_Publisher;
-	rclcpp::TimerBase::SharedPtr m_Timer;
-
 
 public:
 	SerialNode(const mmi::SerialConnection& connection);
